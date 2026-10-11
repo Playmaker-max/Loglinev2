@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LogLine - chat chronology</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eef1f5;--card:#fff;--tx:#17202e;--mut:#5d6b80;--bd:#d5dbe4;--ac:#0b5c75;--acbg:#dff0f5;--s0:#0b5c75;--s1:#b45309;--s2:#6d28d9}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0f1a;--card:#121a2a;--tx:#e8edf5;--mut:#93a0b5;--bd:#25324b;--ac:#4cc3e0;--acbg:#10303c;--s0:#4cc3e0;--s1:#f5a45b;--s2:#b79cf5}}
+:root[data-theme="dark"]{--bg:#0a0f1a;--card:#121a2a;--tx:#e8edf5;--mut:#93a0b5;--bd:#25324b;--ac:#4cc3e0;--acbg:#10303c;--s0:#4cc3e0;--s1:#f5a45b;--s2:#b79cf5}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 14px 48px}
+h1{font:700 28px/1.1 Georgia,"Times New Roman",serif;margin:8px 0 4px}
+h2{font:700 18px Georgia,serif;margin:0 0 8px}
+p{margin:6px 0}.mut{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin:12px 0}
+.btn{display:inline-block;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;padding:10px 14px;font:600 15px inherit;cursor:pointer;margin:4px 6px 4px 0}
+.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .pri{color:#04202a}}
+textarea,input[type=text],input[type=search]{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:10px;font:15px inherit}
+textarea{height:110px;margin:8px 0;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+#msg{min-height:22px;font-weight:600}.err{color:#c0392b}.ok{color:var(--ac)}
+.sum{display:grid;gap:8px}
+.who{border-left:4px solid var(--s0);padding:4px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font:14px inherit;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.day{font:700 15px Georgia,serif;margin:18px 0 6px;padding-bottom:4px;border-bottom:2px solid var(--bd)}
+.ev{border-left:4px solid var(--s0);background:var(--card);border-radius:0 8px 8px 0;padding:8px 12px;margin:6px 0;border-top:1px solid var(--bd);border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.ev.s1{border-left-color:var(--s1)}.ev.s2{border-left-color:var(--s2)}
+.ev b{font-size:14px}.ev time{color:var(--mut);font-size:13px;margin-left:6px}
+.ev div.t{white-space:pre-wrap;word-break:break-word}
+.tg{display:inline-block;font-size:12px;border-radius:4px;padding:1px 6px;margin:4px 4px 0 0;background:var(--acbg);color:var(--ac);font-weight:600}
+.amt{background:#fde68a;color:#422006;border-radius:3px;padding:0 3px;font-weight:700}
+#ph{display:none}
+@media print{
+:root{--bg:#fff;--card:#fff;--tx:#000;--mut:#444;--bd:#bbb;--ac:#0b5c75;--acbg:#eee;--s0:#0b5c75;--s1:#b45309;--s2:#6d28d9}
+.noprint{display:none!important}#ph{display:block}body{font-size:12px}.ev{break-inside:avoid}
+}
+</style></head><body><main>
+<header class="noprint"><h1>LogLine</h1>
+<p>Turn an exported WhatsApp chat into a dated timeline of payments, demands and delays. Built for maintenance and custody disputes.</p></header>
+
+<section class="card noprint">
+<label class="btn pri" for="f">Choose chat file (.txt)</label><input id="f" type="file" accept=".txt,text/plain" hidden>
+<button class="btn" id="smp">Try a sample</button>
+<textarea id="ta" placeholder="Or paste the chat text here"></textarea>
+<button class="btn pri" id="go">Build timeline</button>
+<div id="msg" role="status"></div>
+<p class="mut">Runs only in your browser. Nothing is uploaded or saved. To export: WhatsApp chat, menu, More, Export chat, Without media.</p>
+</section>
+<details class="card noprint"><summary><b>Privacy and limits</b></summary>
+<p>The chat is read and processed inside your browser. This page is set to block all outgoing connections, so the text cannot be sent anywhere, and nothing is saved when you close it.</p>
+<p>Tags are keyword matches, not legal analysis. Check every entry against the original messages before relying on it. Amounts are what people wrote, not proof of payment. This is not legal advice.</p>
+<p>Works with WhatsApp .txt exports (without media). PDF and zip files are not supported.</p>
+</details>
+
+<section id="out" hidden>
+<div id="ph"><h1 id="phT"></h1><p id="phM" class="mut"></p><p class="mut">Generated by LogLine from exported chat text using keyword matching. Check every entry against the original messages. This is not legal advice.</p></div>
+<div class="card noprint"><input type="text" id="ttl" placeholder="Title, e.g. Maintenance payments – Jan to Mar 2026"></div>
+<div class="card"><h2>Summary</h2><p id="rng" class="mut"></p><div class="sum" id="sum"></div>
+<p class="mut">Amounts are what people wrote in the chat. They are not verified against bank records.</p></div>
+<div class="noprint"><div class="chips" id="chips"></div><input type="search" id="q" placeholder="Search messages"></div>
+<div id="list"></div>
+<div class="card noprint"><button class="btn pri" id="pr">Print / save as PDF</button><button class="btn" id="cp">Copy as text</button><div id="msg2" role="status" class="mut"></div></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const TAGS=[
+{k:'payment',l:'Payment made',re:/\b(sent|paid|transferred|deposit(ed)?|eft|proof of payment|came in|received)\b/i},
+{k:'demand',l:'Payment due',re:/\b(due|owe[sd]?|balance|outstanding|arrears|not paid|hasn'?t come|haven'?t received|where is the (payment|money)|nothing has come)\b/i},
+{k:'excuse',l:'Delay or refusal',re:/\b(money is tight|can'?t pay|cannot pay|this week|next week|soon|stop chasing|not made of money|no money|later)\b/i},
+{k:'court',l:'Court or legal',re:/\b(court|magistrate|lawyer|attorney|summons|mediation|maintenance order)\b/i},
+{k:'child',l:'Child costs',re:/\b(school fees?|extra-?mural|medical|doctor|uniform|invoice|clinic|medication)\b/i}];
+const R=n=>'R'+Math.round(n).toLocaleString('en-ZA');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let EV=[],act=new Set(),q='',names=[],FN='';
+function say(t,bad,id='#msg'){const e=$(id);e.textContent=t;e.className=bad?'err':'ok'}
+function parse(txt){
+ const re=/^\[?(\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}),?\s+(\d{1,2}[:.]\d{2}(?::\d{2})?(?:\s?[AaPp]\.?[Mm]\.?)?)\]?\s*(?:-\s*)?([^:]{1,60}?):\s?(.*)$/;
+ const raw=[];
+ const L=txt.replace(/[\u200e\u202f\u200f]/g,' ').split(/\r?\n/);
+ for(let li=0;li<L.length;li++){const ln=L[li];
+  const m=ln.match(re);
+  if(m)raw.push({d:m[1],t:m[2],who:m[3].trim(),msg:m[4],ln:li+1});
+  else if(ln.trim()&&raw.length)raw[raw.length-1].msg+='\n'+ln.trim();
+ }
+ if(!raw.length)return[];
+ const ps=raw.map(r=>r.d.split(/[\/.\-]/).map(Number));
+ const ord=ps[0][0]>31?'ymd':ps.some(p=>p[1]>12)?'mdy':'dmy';
+ const out=[];
+ raw.forEach((r,i)=>{
+  const p=ps[i];let y,mo,d;
+  if(ord==='ymd')[y,mo,d]=p;else if(ord==='mdy')[mo,d,y]=p;else[d,mo,y]=p;
+  if(y<100)y+=2000;if(mo<1||mo>12||d<1||d>31)return;
+  const tm=r.t.match(/(\d{1,2})[:.](\d{2})(?::(\d{2}))?\s?([AaPp])?/);
+  let h=+tm[1];const ap=(tm[4]||'').toLowerCase();
+  if(ap==='p'&&h<12)h+=12;if(ap==='a'&&h===12)h=0;
+  const ts=new Date(y,mo-1,d,h,+tm[2],+(tm[3]||0)).getTime();
+  const msg=r.msg.trim();if(!msg||/^<?media omitted>?$/i.test(msg))return;
+  const amt=[...msg.matchAll(/\bR\s?(\d{1,3}(?:[ ,]\d{3})+|\d+)(?:[.,]\d{2})?\b/g)].map(a=>+a[1].replace(/[ ,]/g,''));
+  out.push({ts,ln:r.ln,date:`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,time:`${String(h).padStart(2,'0')}:${tm[2]}`,who:r.who,msg,amt,tags:TAGS.filter(t=>t.re.test(msg)).map(t=>t.k)});
+ });
+ return out.sort((a,b)=>a.ts-b.ts);
+}
+function run(){
+ const t=$('#ta').value.trim();
+ if(!t)return say('Paste a chat or choose a file first.',1);
+ EV=parse(t);
+ if(!EV.length)return say('No messages found. Each line must look like: [2026/01/02, 08:15] Name: text. Export the chat as a .txt file (not PDF or zip) and try again.',1);
+ names=[...new Set(EV.map(e=>e.who))];act.clear();q='';$('#q').value='';
+ say(`Found ${EV.length} messages from ${names.length} people.`);
+ $('#out').hidden=false;draw();$('#out').scrollIntoView({behavior:'smooth'});
+}
+function shown(){return EV.filter(e=>(!act.size||e.tags.some(t=>act.has(t)))&&(!q||(e.msg+e.who).toLowerCase().includes(q)))}
+function fmtD(s){const[y,m,d]=s.split('-');return new Date(y,m-1,d).toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}
+function draw(){
+ $('#rng').textContent=`${fmtD(EV[0].date)} to ${fmtD(EV[EV.length-1].date)}. ${EV.length} messages.`;
+ $('#sum').innerHTML=names.map((w,i)=>{
+  const m=EV.filter(e=>e.who===w),c=k=>m.filter(e=>e.tags.includes(k)).length;
+  const paid=m.filter(e=>e.tags.includes('payment')&&/\b(sent|paid|transferred|deposit)/i.test(e.msg)).flatMap(e=>e.amt);
+  const sum=paid.reduce((a,b)=>a+b,0);
+  return `<div class="who" style="border-color:var(--s${Math.min(i,2)})"><b>${esc(w)}</b>: ${m.length} messages, ${c('demand')} about money due, ${c('excuse')} about delays`+(paid.length?`, says they paid ${R(sum)}`:'')+`</div>`}).join('');
+ $('#chips').innerHTML=TAGS.map(t=>{const n=EV.filter(e=>e.tags.includes(t.k)).length;return `<button class="chip${act.has(t.k)?' on':''}" data-k="${t.k}">${t.l} (${n})</button>`}).join('');
+ const s=shown();let last='',h='';
+ if(!s.length)h='<p class="mut">No messages match this filter.</p>';
+ for(const e of s){
+  if(e.date!==last){h+=`<div class="day">${fmtD(e.date)}</div>`;last=e.date}
+  const body=esc(e.msg).replace(/\bR\s?\d[\d ,]*(?:[.,]\d{2})?\b/g,m=>`<span class="amt">${m}</span>`);
+  h+=`<div class="ev s${Math.min(names.indexOf(e.who),2)}"><b>${esc(e.who)}</b><time>${e.time} &middot; source line ${e.ln}</time><div class="t">${body}</div>${e.tags.map(k=>`<span class="tg">${TAGS.find(t=>t.k===k).l}</span>`).join('')}</div>`;
+ }
+ $('#list').innerHTML=h;
+}
+$('#chips').addEventListener('click',e=>{const k=e.target.dataset.k;if(!k)return;act.has(k)?act.delete(k):act.add(k);draw()});
+$('#q').addEventListener('input',e=>{q=e.target.value.toLowerCase();draw()});
+$('#go').onclick=run;
+$('#ta').addEventListener('input',()=>{FN=''});
+$('#f').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+ if(!/\.txt$/i.test(f.name)&&f.type!=='text/plain')return say('That file is not a .txt. Export the chat as text without media.',1);
+ try{$('#ta').value=await f.text();FN=f.name;run()}catch(x){say('Could not read that file. Try pasting the text instead.',1)}};
+$('#smp').onclick=()=>{$('#ta').value=`[2026/01/02, 08:15:11] Lerato: Happy new year. January maintenance came in, thanks.
+[2026/02/01, 09:03:19] Lerato: Hi, February maintenance hasn't come in yet
+[2026/02/01, 18:47:33] Sipho: Money is tight this month, will send soon
+[2026/02/05, 12:10:02] Lerato: It was due on the 1st Sipho.
+Her school fees invoice is also due
+[2026/02/14, 20:31:48] Sipho: Sent R2000 now, rest end of month
+[2026/02/14, 20:33:10] Lerato: That's not the full R4500.
+The court order says R4500
+[2026/02/14, 20:35:59] Sipho: It's what I have.
+I'm not made of money
+[2026/03/12, 21:14:07] Lerato: Where is the payment?
+Nothing has come in for March or the balance for Feb
+[2026/03/12, 21:20:31] Sipho: I said this week.
+Stop chasing me`;FN='sample chat';run()};
+$('#pr').onclick=()=>{$('#phT').textContent=$('#ttl').value.trim()||'Chat evidence timeline';$('#phM').textContent='Prepared '+new Date().toLocaleDateString('en-ZA',{day:'numeric',month:'long',year:'numeric'})+'. Source: '+(FN||'pasted text')+'. '+EV.length+' messages in source, '+shown().length+' shown'+((act.size||q)?' (filtered view)':'')+'.';try{window.print()}catch(x){say('Printing is blocked here. Use your browser menu, Share or Print.',1,'#msg2')}};
+$('#cp').onclick=async()=>{
+ const t=($('#ttl').value.trim()||'Chat evidence timeline')+'\n\n'+shown().map(e=>`${e.date} ${e.time} ${e.who}: ${e.msg.replace(/\n/g,' ')}`).join('\n');
+ try{await navigator.clipboard.writeText(t);say('Copied. Paste it into a document or message.',0,'#msg2')}
+ catch(x){const a=$('#ta');a.value=t;a.select();say('Copy was blocked. The text is in the box at the top: select it and copy.',1,'#msg2')}};
+</script></body></html>
